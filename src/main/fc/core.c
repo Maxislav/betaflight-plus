@@ -543,7 +543,10 @@ void disarm(flightLogDisarmReason_e reason)
 }
 
 void tryArm(void)
+    
 {
+
+
     if (armingConfig()->gyro_cal_on_first_arm) {
         gyroStartCalibration(true);
     }
@@ -551,7 +554,9 @@ void tryArm(void)
 
     updateArmingStatus();
     // set or clear armingDisabled flags, while arming is requested, whether armed or disarmed, 
-
+    
+    // TODO remove
+    ENABLE_ARMING_FLAG(ARMED); 
 
     if (!isArmingDisabled()) {
         if (ARMING_FLAG(ARMED)) {
@@ -670,6 +675,9 @@ if (isMotorProtocolDshot()) {
         }
     }
 }
+
+
+
 
 // Automatic ACC Offset Calibration
 bool AccInflightCalibrationArmed = false;

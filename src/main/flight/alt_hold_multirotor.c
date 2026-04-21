@@ -52,6 +52,8 @@ typedef struct {
 
 altHoldState_t altHold;
 
+
+//Сброс по вкл тумблера
 static void altHoldReset(void)
 {
     resetAltitudeControl();
@@ -73,7 +75,7 @@ static void altHoldProcessTransitions(void) {
     if (FLIGHT_MODE(ALT_HOLD_MODE)) {
         if (!altHold.isActive) {
             altHoldReset();
-            altHold.isActive = true;
+            altHold.isActive = true; //еще одно включение алт холд
         }
     } else {
         altHold.isActive = false;

@@ -36,6 +36,7 @@
 #include "flight/position.h"
 #include "rx/rx.h"
 #include "sensors/gyro.h"
+#include "sensors/acceleration.h"
 
 #include "pg/autopilot.h"
 #include "autopilot.h"
@@ -49,12 +50,17 @@
 #define POSITION_D_SCALE  0.0015f
 #define POSITION_A_SCALE  0.0008f
 #define UPSAMPLING_CUTOFF_HZ 5.0f
+#define GRAVITY_EARTH  (9.80665f)
 
 static pidCoefficient_t altitudePidCoeffs;
 static pidCoefficient_t positionPidCoeffs;
 
 static float altitudeI = 0.0f;
 static float throttleOut = 0.0f;
+static float myAltitude = 0.0f;
+static float prevTime = 0.0f;
+static float myVerticalVelocity = 0.0f;
+
 
 typedef struct efPidAxis_s {
     bool isStopping;
@@ -162,13 +168,40 @@ void autopilotInit(void)
 
 void resetAltitudeControl (void) {
     altitudeI = 0.0f;
+    myAltitude = 0.0f;
+    prevTime = (float)micros()/1e6f;
+    myVerticalVelocity = getAltitudeDerivative()/100.0f;
 }
 
 void altitudeControl(float targetAltitudeCm, float taskIntervalS, float targetAltitudeStep)
 {
+     // targetAltitudeCm = высота на момент включения алт холд - разница между арм и высотой на которой ключено в см
+     // taskIntervalS - в секундах - 0.01 секунда
+//GRAVITY_EARTH
+   //  acc.accADC.z *acc.dev.acc_1G_rec; // перегрузка 1.0 * 1000;
+
+
+    float currentTime = (float)micros() / 1e6f;
+    float dTime = currentTime - prevTime;
+    float accZ = (acc.accADC.z * acc.dev.acc_1G_rec - 1.0f) * GRAVITY_EARTH;
+    myVerticalVelocity += accZ * dTime;
+    myAltitude += myVerticalVelocity * dTime;
+
+    // 4. Сохраняем время для следующего итерации
+    prevTime = currentTime;
+
+
+    // const float dH = (acc.accADC.z *acc.dev.acc_1G_rec-1)*GRAVITY_EARTH * dTime*dTime/2;
+    // myAltitude+=dH;
+    // prevTime = (float)micros()/1e6f;
+
+    
+
+
     const float verticalVelocityCmS = getAltitudeDerivative();
     const float altitudeErrorCm = targetAltitudeCm - getAltitudeCm();
     const float altitudeP = altitudeErrorCm * altitudePidCoeffs.Kp;
+
 
     // reduce the iTerm gain for errors greater than 200cm (2m), otherwise it winds up too much
     const float itermRelax = (fabsf(altitudeErrorCm) < 200.0f) ? 1.0f : 0.1f;
@@ -203,6 +236,7 @@ void altitudeControl(float targetAltitudeCm, float taskIntervalS, float targetAl
 
     float newThrottle = PWM_RANGE_MIN + throttleOffset;
     newThrottle = constrainf(newThrottle, autopilotConfig()->throttleMin, autopilotConfig()->throttleMax);
+    /// новый газ
     DEBUG_SET(DEBUG_AUTOPILOT_ALTITUDE, 0, lrintf(newThrottle)); // normal range 1000-2000 but is before constraint
 
     newThrottle = scaleRangef(newThrottle, MAX(rxConfig()->mincheck, PWM_RANGE_MIN), PWM_RANGE_MAX, 0.0f, 1.0f);
@@ -210,6 +244,7 @@ void altitudeControl(float targetAltitudeCm, float taskIntervalS, float targetAl
     throttleOut = constrainf(newThrottle, 0.0f, 1.0f);
 
     DEBUG_SET(DEBUG_AUTOPILOT_ALTITUDE, 1, lrintf(tiltMultiplier * 100));
+    DEBUG_SET(DEBUG_AUTOPILOT_ALTITUDE, 2, lrintf(myAltitude*1000));
     DEBUG_SET(DEBUG_AUTOPILOT_ALTITUDE, 3, lrintf(targetAltitudeCm));
     DEBUG_SET(DEBUG_AUTOPILOT_ALTITUDE, 4, lrintf(altitudeP));
     DEBUG_SET(DEBUG_AUTOPILOT_ALTITUDE, 5, lrintf(altitudeI));

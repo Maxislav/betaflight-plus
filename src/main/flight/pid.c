@@ -589,6 +589,11 @@ STATIC_UNIT_TESTED FAST_CODE_NOINLINE float pidLevel(int axis, const pidProfile_
         angleLimit = fminf(0.5f * autopilotConfig()->maxAngle, angleLimit);
     }
 #endif
+    //DEBUG_SET(DEBUG_RX_TIMING, 5, (myCustomSwitchValue-1000)/10);
+    float myCustomAngleOffset = 15.0f;
+    if(FLIGHT_MODE(FOLLOW_MODE) && axis==FD_PITCH){
+        angleTarget+=myCustomAngleOffset;
+    }
 
     angleTarget = constrainf(angleTarget, -angleLimit, angleLimit);
 
@@ -611,13 +616,18 @@ STATIC_UNIT_TESTED FAST_CODE_NOINLINE float pidLevel(int axis, const pidProfile_
 
     if (FLIGHT_MODE(ANGLE_MODE| GPS_RESCUE_MODE | POS_HOLD_MODE)) {
         currentPidSetpoint = angleRate;
+        if(axis == FD_PITCH){
+            DEBUG_SET(DEBUG_RX_TIMING, 5, (int)currentPidSetpoint);
+        }
+       
     } else {
         // can only be HORIZON mode - crossfade Angle rate and Acro rate
         currentPidSetpoint = currentPidSetpoint * (1.0f - horizonLevelStrength) + angleRate * horizonLevelStrength;
     }
 
     //logging
-    if (axis == FD_ROLL) {
+    //if (axis == FD_ROLL) {
+    if (axis == FD_PITCH) {
         DEBUG_SET(DEBUG_ANGLE_MODE, 0, lrintf(angleTarget * 10.0f)); // target angle
         DEBUG_SET(DEBUG_ANGLE_MODE, 1, lrintf(errorAngle * pidRuntime.angleGain * 10.0f)); // un-smoothed error correction in degrees
         DEBUG_SET(DEBUG_ANGLE_MODE, 2, lrintf(angleFeedforward * 10.0f)); // feedforward amount in degrees
@@ -627,6 +637,9 @@ STATIC_UNIT_TESTED FAST_CODE_NOINLINE float pidLevel(int axis, const pidProfile_
         DEBUG_SET(DEBUG_ANGLE_TARGET, 1, lrintf(sinAngle * 10.0f)); // modification factor from earthRef
         // debug ANGLE_TARGET 2 is yaw attenuation
         DEBUG_SET(DEBUG_ANGLE_TARGET, 3, lrintf(currentAngle * 10.0f)); // angle returned
+    }
+    if(axis == FD_YAW){
+        //DEBUG_SET(DEBUG_ANGLE_TARGET, 3, lrintf(currentAngle * 10.0f)); // angle returned
     }
 
     DEBUG_SET(DEBUG_CURRENT_ANGLE, axis, lrintf(currentAngle * 10.0f)); // current angle
@@ -1264,6 +1277,7 @@ void FAST_CODE pidController(const pidProfile_t *pidProfile, timeUs_t currentTim
                 currentPidSetpoint = pidLevel(axis, pidProfile, angleTrim, currentPidSetpoint, horizonLevelStrength);
             }
         } else { // yaw axis only
+            currentPidSetpoint = currentPidSetpoint;
             if (levelMode == LEVEL_MODE_RP) {
                 // if earth referencing is requested, attenuate yaw axis setpoint when pitched or rolled
                 // and send yawSetpoint to Angle code to modulate pitch and roll
