@@ -170,7 +170,7 @@ void resetAltitudeControl (void) {
     altitudeI = 0.0f;
     myAltitude = 0.0f;
     prevTime = (float)micros()/1e6f;
-    myVerticalVelocity = getAltitudeDerivative()/100.0f;
+    myVerticalVelocity = 0.0f;//getAltitudeDerivative()/100.0f;
 }
 
 void altitudeControl(float targetAltitudeCm, float taskIntervalS, float targetAltitudeStep)
@@ -242,9 +242,10 @@ void altitudeControl(float targetAltitudeCm, float taskIntervalS, float targetAl
     newThrottle = scaleRangef(newThrottle, MAX(rxConfig()->mincheck, PWM_RANGE_MIN), PWM_RANGE_MAX, 0.0f, 1.0f);
 
     throttleOut = constrainf(newThrottle, 0.0f, 1.0f);
+    attitude.values.pitch;
 
     DEBUG_SET(DEBUG_AUTOPILOT_ALTITUDE, 1, lrintf(tiltMultiplier * 100));
-    DEBUG_SET(DEBUG_AUTOPILOT_ALTITUDE, 2, lrintf(myAltitude*1000));
+    DEBUG_SET(DEBUG_AUTOPILOT_ALTITUDE, 2, lrintf(myAltitude*100));
     DEBUG_SET(DEBUG_AUTOPILOT_ALTITUDE, 3, lrintf(targetAltitudeCm));
     DEBUG_SET(DEBUG_AUTOPILOT_ALTITUDE, 4, lrintf(altitudeP));
     DEBUG_SET(DEBUG_AUTOPILOT_ALTITUDE, 5, lrintf(altitudeI));

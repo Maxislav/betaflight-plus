@@ -351,3 +351,18 @@ float smoothStepUpTransition(const float x, const float center, const float widt
         return cubicBlend(t);
     }
 }
+
+float calculateVerticalG(float ax, float ay, float az, float pitchDeg, float rollDeg)
+{
+    // В Betaflight часто используются макросы DEGTORAD
+    const float pitchRad = degreesToRadians(pitchDeg);
+    const float rollRad = degreesToRadians(rollDeg);
+
+    const float cp = cosf(pitchRad);
+    const float sp = sinf(pitchRad);
+    const float cr = cosf(rollRad);
+    const float sr = sinf(rollRad);
+
+    // Проекция на глобальную ось Z
+    return (ax * sp) - (ay * sr * cp) + (az * cr * cp);
+}
