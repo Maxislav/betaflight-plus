@@ -72,6 +72,9 @@ static inline void applyAccelerationTrims(const flightDynamicsTrims_t *accelerat
     acc.accADC.z -= accelerationTrims->raw[Z];
 }
 
+
+
+
 static inline void postProcessAccelerometer(void)
 {
     static vector3_t accAdcPrev;
@@ -80,7 +83,7 @@ static inline void postProcessAccelerometer(void)
 
         // Apply anti-alias filter for attitude task (if enabled)
         if (axis == gyro.gyroDebugAxis) {
-            DEBUG_SET(DEBUG_ACCELEROMETER, 0, lrintf(acc.accADC.v[axis]));
+           // DEBUG_SET(DEBUG_ACCELEROMETER, 0, lrintf(acc.accADC.v[axis]));
         }
 
         if (accelerationRuntime.accLpfCutHz) {
@@ -92,16 +95,26 @@ static inline void postProcessAccelerometer(void)
         accAdcPrev.v[axis] = acc.accADC.v[axis];
 
         if (axis == gyro.gyroDebugAxis) {
-            DEBUG_SET(DEBUG_ACCELEROMETER, 1, lrintf(acc.accADC.v[axis]));
-            DEBUG_SET(DEBUG_ACCELEROMETER, 3, lrintf(acc.jerk.v[axis] * 1e-2f));
+            //DEBUG_SET(DEBUG_ACCELEROMETER, 1, lrintf(acc.accADC.v[axis]));
+           // DEBUG_SET(DEBUG_ACCELEROMETER, 3, lrintf(acc.jerk.v[axis] * 1e-2f));
         }
     }
 
     acc.accMagnitude = vector3Norm(&acc.accADC) * acc.dev.acc_1G_rec;
     acc.jerkMagnitude = vector3Norm(&acc.jerk) * acc.dev.acc_1G_rec;
+    // vector3_t accG = { 
+    //     .x = acc.accADC.x * acc.dev.acc_1G_rec, 
+    //     .y = acc.accADC.y * acc.dev.acc_1G_rec, 
+    //     .z = acc.accADC.z * acc.dev.acc_1G_rec
+    // };
 
-    DEBUG_SET(DEBUG_ACCELEROMETER, 2, lrintf(acc.accMagnitude * 1e3f));
-    DEBUG_SET(DEBUG_ACCELEROMETER, 4, lrintf(acc.jerkMagnitude * 1e3f));
+    //acc.accVerical = calculateVerticalG3t(accG, gyro.gyroADCf[FD_PITCH], gyro.gyroADCf[FD_ROLL] );
+        //gyro.gyroADCf[FD_PITCH] - ускорение вращения
+    
+    //DEBUG_SET(DEBUG_ACCELEROMETER, 0, lrintf(attitudeю));
+    DEBUG_SET(DEBUG_ACCELEROMETER, 1, lrintf(gyro.gyroADCf[FD_ROLL]));
+    //DEBUG_SET(DEBUG_ACCELEROMETER, 2, lrintf(acc.accMagnitude * 1e3f));
+    //DEBUG_SET(DEBUG_ACCELEROMETER, 4, lrintf(acc.jerkMagnitude * 1e3f));
 }
 
 void accUpdate(timeUs_t currentTimeUs)
@@ -123,5 +136,7 @@ void accUpdate(timeUs_t currentTimeUs)
 
     acc.isAccelUpdatedAtLeastOnce = true;
 }
+
+
 
 #endif // USE_ACC

@@ -175,6 +175,7 @@
 #define PARAM_NAME_AP_POSITION_A "ap_position_a"
 #define PARAM_NAME_AP_POSITION_CUTOFF "ap_position_cutoff"
 #define PARAM_NAME_AP_MAX_ANGLE "ap_max_angle"
+#define PARAM_NAME_AP_FOLLOW_AUX "ap_follow_aux"
 
 #define PARAM_NAME_ANGLE_FEEDFORWARD "angle_feedforward"
 #define PARAM_NAME_ANGLE_FF_SMOOTHING_MS "angle_feedforward_smoothing_ms"

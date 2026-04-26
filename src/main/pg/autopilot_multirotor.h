@@ -42,6 +42,7 @@ typedef struct autopilotConfig_s {
     uint8_t positionA;
     uint8_t positionCutoff;
     uint8_t maxAngle;
+    uint8_t followAux;
 } autopilotConfig_t;
 
 PG_DECLARE(autopilotConfig_t, autopilotConfig);
