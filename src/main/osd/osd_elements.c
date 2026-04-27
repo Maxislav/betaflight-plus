@@ -750,7 +750,6 @@ static void osdElementAntiGravity(osdElementParms_t *element)
 }
 
 #ifdef USE_ACC
-
 static void osdElementArtificialHorizon(osdElementParms_t *element)
 {
     static int x = -4;
@@ -760,6 +759,7 @@ static void osdElementArtificialHorizon(osdElementParms_t *element)
     const int ahSign = osdConfig()->ahInvert ? -1 : 1;
     const int rollAngle = constrain(attitude.values.roll * ahSign, -maxRoll, maxRoll);
     int pitchAngle = constrain(attitude.values.pitch * ahSign, -maxPitch, maxPitch);
+    pitchAngle = pitchAngle * 1.2;
     // Convert pitchAngle to y compensation value
     // (maxPitch / 25) divisor matches previous settings of fixed divisor of 8 and fixed max AHI pitch angle of 20.0 degrees
     if (maxPitch > 0) {
@@ -772,10 +772,11 @@ static void osdElementArtificialHorizon(osdElementParms_t *element)
         element->elemOffsetX = x;
         element->elemOffsetY = y / AH_SYMBOL_COUNT;
 
-        tfp_sprintf(element->buff, "%c", (SYM_AH_BAR9_0 + (y % AH_SYMBOL_COUNT)));
+        tfp_sprintf(element->buff, "%c", (x<-1 || x>1) ? (SYM_AH_BAR9_0 + (y % AH_SYMBOL_COUNT)): SYM_BLANK);
     } else {
         element->drawElement = false;  // element does not need to be rendered
     }
+    
 
     if (x == 4) {
         // Rendering is complete, so prepare to start again
