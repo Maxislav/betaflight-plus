@@ -53,6 +53,7 @@
 #include "sensors/gyro.h"
 
 #include "rc.h"
+#include "pg/autopilot.h"
 
 #define RX_INTERVAL_MIN_US 800   // 0.800ms to fit 1kHz without an issue often 1khz rc comes in at 880us or so
 #define RX_INTERVAL_MAX_US 65500 // 65.5ms or 15.26hz
@@ -79,6 +80,17 @@ static bool isRxDataNew = false;
 static bool isRxRateValid = false;
 static float rcCommandDivider = 500.0f;
 static float rcCommandYawDivider = 500.0f;
+
+
+typedef struct {
+    uint16_t min;
+    uint16_t max;
+    int aux;
+} followMode_t;
+
+followMode_t followMode;
+
+
 
 enum
 {
@@ -764,9 +776,12 @@ FAST_CODE void processRcCommand(void)
 FAST_CODE_NOINLINE void updateRcCommands(void)
 {
     isRxDataNew = true;
-    myCustomSwitchValue = rcData[AUX4];
+    //myCustomSwitchValue = rcData[AUX4];
+   myCustomSwitchValue = rcData[AUX4];
+   //myCustomSwitchValue = autopilotConfig()->followMode[2];
 
-    if (rcData[AUX4] > 1400 && rcData[AUX4] < 1700)
+    //if (rcData[AUX4] > 1400 && rcData[AUX4] < 1700)
+    if (rcData[followMode.aux] > followMode.min && rcData[followMode.aux] < followMode.max)
     {
         // Если стик в диапазоне, включаем режим (если еще не включен)
         if (!FLIGHT_MODE(FOLLOW_MODE))
@@ -944,6 +959,10 @@ void initRcProcessing(void)
 {
     rcCommandDivider = 500.0f - rcControlsConfig()->deadband;
     rcCommandYawDivider = 500.0f - rcControlsConfig()->yaw_deadband;
+  
+    followMode.min = autopilotConfig()->followMode[0];
+    followMode.max = autopilotConfig()->followMode[1];
+    followMode.aux = autopilotConfig()->followMode[2];
 
     float thrMid = currentControlRateProfile->thrMid8 / 100.0f;     // normalized x coordinate for hover point
     float expo = currentControlRateProfile->thrExpo8 / 100.0f;      // normalized expo (0.0 .. 1.0)

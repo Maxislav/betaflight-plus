@@ -63,6 +63,7 @@
 #include "flight/gps_rescue.h"
 #include "flight/alt_hold.h"
 #include "flight/pos_hold.h"
+#include "pg/autopilot.h"
 
 #if defined(USE_DYN_NOTCH_FILTER)
 #include "flight/dyn_notch_filter.h"
@@ -171,6 +172,8 @@ const char * const osdLaunchControlModeNames[] = {
     "FULL"
 };
 #endif
+
+///uint16_t aux = autopilotConfig()->followMode[2];
 
 PG_REGISTER_WITH_RESET_TEMPLATE(throttleCorrectionConfig_t, throttleCorrectionConfig, PG_THROTTLE_CORRECTION_CONFIG, 0);
 
@@ -556,7 +559,7 @@ void tryArm(void)
     // set or clear armingDisabled flags, while arming is requested, whether armed or disarmed, 
     
     // TODO remove
-    ENABLE_ARMING_FLAG(ARMED); 
+    // ENABLE_ARMING_FLAG(ARMED); 
 
     if (!isArmingDisabled()) {
         if (ARMING_FLAG(ARMED)) {
@@ -1029,7 +1032,7 @@ void processRxModes(timeUs_t currentTimeUs)
     }
 
     bool canUseHorizonMode = true;
-    if ((IS_RC_MODE_ACTIVE(BOXANGLE)
+    if ((IS_RC_MODE_ACTIVE(BOXANGLE) //
         || failsafeIsActive()
 #ifdef USE_ALTITUDE_HOLD
         || FLIGHT_MODE(ALT_HOLD_MODE)
@@ -1047,6 +1050,11 @@ void processRxModes(timeUs_t currentTimeUs)
     } else {
         DISABLE_FLIGHT_MODE(ANGLE_MODE); // failsafe support
     }
+
+    // u 
+    ///uint16_t aux = autopilotConfig()->followMode[2];
+    //autoPipilotConfig()->followMode[2]
+
 
 #ifdef USE_ALTITUDE_HOLD
     // only if armed; can coexist with position hold
