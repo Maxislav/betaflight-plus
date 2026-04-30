@@ -58,7 +58,7 @@
 #define RX_INTERVAL_MIN_US 800   // 0.800ms to fit 1kHz without an issue often 1khz rc comes in at 880us or so
 #define RX_INTERVAL_MAX_US 65500 // 65.5ms or 15.26hz
 
-uint16_t myCustomSwitchValue = 1000;
+// uint16_t myCustomSwitchValue = 1000;
 
 typedef float(applyRatesFn)(const int axis, float rcCommandf, const float rcCommandfAbs);
 // note that rcCommand[] is an external float
@@ -327,7 +327,7 @@ void updateRcRefreshRate(timeUs_t currentTimeUs, bool rxReceivingSignal)
             delta = cmpTimeUs(rxTime, lastRxTimeUs);
         }
         lastRxTimeUs = rxTime;
-        DEBUG_SET(DEBUG_RX_TIMING, 1, rxTime / 100); // packet time stamp in tenths of ms
+        //DEBUG_SET(DEBUG_RX_TIMING, 1, rxTime / 100); // packet time stamp in tenths of ms
     }
     else
     {
@@ -344,16 +344,16 @@ void updateRcRefreshRate(timeUs_t currentTimeUs, bool rxReceivingSignal)
     currentRxRateHz = 1e6f / currentRxIntervalUs;
     isRxRateValid = delta == currentRxIntervalUs; // delta is not constrained, therefore not outside limits
 
-    DEBUG_SET(DEBUG_RX_TIMING, 0, MIN(delta / 10, INT16_MAX)); // packet interval in hundredths of ms
-    DEBUG_SET(DEBUG_RX_TIMING, 2, isRxRateValid);
-    DEBUG_SET(DEBUG_RX_TIMING, 3, MIN(currentRxIntervalUs / 10, INT16_MAX)); // constrained packet interval, tenths of ms
-    DEBUG_SET(DEBUG_RX_TIMING, 4, lrintf(currentRxRateHz));
+    //DEBUG_SET(DEBUG_RX_TIMING, 0, MIN(delta / 10, INT16_MAX)); // packet interval in hundredths of ms
+    //DEBUG_SET(DEBUG_RX_TIMING, 2, isRxRateValid);
+    //DEBUG_SET(DEBUG_RX_TIMING, 3, MIN(currentRxIntervalUs / 10, INT16_MAX)); // constrained packet interval, tenths of ms
+   // DEBUG_SET(DEBUG_RX_TIMING, 4, lrintf(currentRxRateHz));
     // temporary debugs
 #ifdef USE_RX_LINK_QUALITY_INFO
     DEBUG_SET(DEBUG_RX_TIMING, 6, rxGetLinkQualityPercent()); // raw link quality value
 #endif
-    DEBUG_SET(DEBUG_RX_TIMING, 7, isRxReceivingSignal()); // flag to initiate RXLOSS signal and Stage 1 values
-    DEBUG_SET(DEBUG_RC_SMOOTHING, 0, lrintf(currentRxRateHz));
+   // DEBUG_SET(DEBUG_RX_TIMING, 7, isRxReceivingSignal()); // flag to initiate RXLOSS signal and Stage 1 values
+   // DEBUG_SET(DEBUG_RC_SMOOTHING, 0, lrintf(currentRxRateHz));
 }
 
 // currently only used in the CLI
@@ -777,15 +777,16 @@ FAST_CODE_NOINLINE void updateRcCommands(void)
 {
     isRxDataNew = true;
     //myCustomSwitchValue = rcData[AUX4];
-   myCustomSwitchValue = rcData[AUX4];
    //myCustomSwitchValue = autopilotConfig()->followMode[2];
-
+    DEBUG_SET(DEBUG_RX_TIMING, 1, rcData[AUX4]);
+    DEBUG_SET(DEBUG_RX_TIMING, 2, rcData[followMode.aux]);
     //if (rcData[AUX4] > 1400 && rcData[AUX4] < 1700)
     if (rcData[followMode.aux] > followMode.min && rcData[followMode.aux] < followMode.max)
     {
         // Если стик в диапазоне, включаем режим (если еще не включен)
         if (!FLIGHT_MODE(FOLLOW_MODE))
         {
+            DEBUG_SET(DEBUG_RX_TIMING, 0, 1000);
             ENABLE_FLIGHT_MODE(FOLLOW_MODE);
         }
     }
@@ -795,6 +796,7 @@ FAST_CODE_NOINLINE void updateRcCommands(void)
         if (FLIGHT_MODE(FOLLOW_MODE))
         {
             DISABLE_FLIGHT_MODE(FOLLOW_MODE);
+             DEBUG_SET(DEBUG_RX_TIMING, 0, 0);
         }
     }
     // DEBUG_SET(DEBUG_RX_TIMING, 5, (myCustomSwitchValue-1000)/10);
@@ -962,7 +964,7 @@ void initRcProcessing(void)
   
     followMode.min = autopilotConfig()->followMode[0];
     followMode.max = autopilotConfig()->followMode[1];
-    followMode.aux = autopilotConfig()->followMode[2];
+    followMode.aux = (int)(autopilotConfig()->followMode[2]+3);
 
     float thrMid = currentControlRateProfile->thrMid8 / 100.0f;     // normalized x coordinate for hover point
     float expo = currentControlRateProfile->thrExpo8 / 100.0f;      // normalized expo (0.0 .. 1.0)

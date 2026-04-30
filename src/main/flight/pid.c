@@ -590,9 +590,9 @@ STATIC_UNIT_TESTED FAST_CODE_NOINLINE float pidLevel(int axis, const pidProfile_
     }
 #endif
     //DEBUG_SET(DEBUG_RX_TIMING, 5, (myCustomSwitchValue-1000)/10);
-    float myCustomAngleOffset = 15.0f;
+    //float myCustomAngleOffset = 15.0f;
     if(FLIGHT_MODE(FOLLOW_MODE) && !FLIGHT_MODE(GPS_RESCUE_MODE | FAILSAFE_MODE | ANGLE_MODE | HORIZON_MODE) && axis==FD_PITCH){
-        angleTarget+=myCustomAngleOffset;
+        angleTarget+=autopilotConfig()->followAngle;
     }
 
     angleTarget = constrainf(angleTarget, -angleLimit, angleLimit);
@@ -617,7 +617,7 @@ STATIC_UNIT_TESTED FAST_CODE_NOINLINE float pidLevel(int axis, const pidProfile_
     if (FLIGHT_MODE(ANGLE_MODE| GPS_RESCUE_MODE | POS_HOLD_MODE)) {
         currentPidSetpoint = angleRate;
         if(axis == FD_PITCH){
-            DEBUG_SET(DEBUG_RX_TIMING, 5, (int)currentPidSetpoint);
+           // DEBUG_SET(DEBUG_RX_TIMING, 5, (int)currentPidSetpoint);
         }
        
     } else {

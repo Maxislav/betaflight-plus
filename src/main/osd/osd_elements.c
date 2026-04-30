@@ -976,6 +976,7 @@ static float getAverage(float *arr){
 
 static void osdElementCrosshairs(osdElementParms_t *element)
 {
+    bool haveGps = false;
     // element->buff[0] = SYM_AH_CENTER_LINE;
     // element->buff[1] = SYM_AH_CENTER;
     // element->buff[2] = SYM_AH_CENTER_LINE_RIGHT;
@@ -987,13 +988,16 @@ static void osdElementCrosshairs(osdElementParms_t *element)
     static float verticalAngleList[10] = {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f};
     static timeUs_t prevTime = 0;
 
-   
+#ifdef USE_GPS
+    haveGps = sensors(SENSOR_GPS) && STATE(GPS_FIX);
+#endif 
 
     element->buff[3] = 0;
     const int maxPitch = osdConfig()->ahMaxPitch * 10;
-    const float groundSpeed  = gpsSol.groundSpeed;
+    float groundSpeed  = haveGps ? (float)gpsSol.groundSpeed : 1400.0f;
+    groundSpeed = constrainf(groundSpeed, 150.0f, 3000.0f );
     const float verticalSpeed = osdGetMetersToSelectedUnit(getEstimatedVario());
-    float verticalAngle = STATE(GPS_FIX) ? RADIANS_TO_DEGREES(atanf( verticalSpeed/groundSpeed )) : 0.0f;
+    float verticalAngle = RADIANS_TO_DEGREES(atanf( verticalSpeed/groundSpeed ));
     if(micros() > prevTime + 100000/2){
         prevTime = micros();
         for(int i = 0; i< 9; i++ ){
