@@ -1178,7 +1178,9 @@ static void osdElementFlymode(osdElementParms_t *element)
         strcpy(element->buff, "PASS");
     } else if (FLIGHT_MODE(POS_HOLD_MODE)) {
         strcpy(element->buff, "POSH");
-    } else if (FLIGHT_MODE(ALT_HOLD_MODE)) {
+    }else if (FLIGHT_MODE(CRUISE_MODE)) {
+        strcpy(element->buff, "CRUISE");
+    }else if (FLIGHT_MODE(ALT_HOLD_MODE)) {
         strcpy(element->buff, "ALTH");
     } else if (FLIGHT_MODE(ANGLE_MODE)) {
         strcpy(element->buff, "ANGL");

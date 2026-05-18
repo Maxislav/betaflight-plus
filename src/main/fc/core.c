@@ -1036,6 +1036,7 @@ void processRxModes(timeUs_t currentTimeUs)
         || failsafeIsActive()
 #ifdef USE_ALTITUDE_HOLD
         || FLIGHT_MODE(ALT_HOLD_MODE)
+        || FLIGHT_MODE(CRUISE_MODE) //TODO my not nessusary
 #endif
 #ifdef USE_POSITION_HOLD
         || FLIGHT_MODE(POS_HOLD_MODE)
@@ -1062,7 +1063,7 @@ void processRxModes(timeUs_t currentTimeUs)
         // and not in GPS_RESCUE_MODE, to give it priority over Altitude Hold
         && !FLIGHT_MODE(GPS_RESCUE_MODE)
         // and either the alt_hold switch is activated, or are in failsafe landing mode
-        && (IS_RC_MODE_ACTIVE(BOXALTHOLD) || failsafeIsActive())
+        && (IS_RC_MODE_ACTIVE(BOXALTHOLD) || IS_RC_MODE_ACTIVE(BOXCRUISE) || failsafeIsActive() )
         // and we have Acc for self-levelling
         && sensors(SENSOR_ACC)
         // and we have altitude data
@@ -1075,6 +1076,22 @@ void processRxModes(timeUs_t currentTimeUs)
     } else {
         DISABLE_FLIGHT_MODE(ALT_HOLD_MODE);
     }
+
+    if (ARMING_FLAG(ARMED)
+        && !FLIGHT_MODE(GPS_RESCUE_MODE)
+        && (IS_RC_MODE_ACTIVE(BOXCRUISE))
+        && sensors(SENSOR_ACC)
+        && isAltitudeAvailable()
+        && wasThrottleRaised()) {
+        if (!FLIGHT_MODE(CRUISE_MODE)) {
+            ENABLE_FLIGHT_MODE(CRUISE_MODE);
+        }
+    } else {
+        DISABLE_FLIGHT_MODE(CRUISE_MODE);
+    }
+
+
+
 #endif
 
 #ifdef USE_POSITION_HOLD

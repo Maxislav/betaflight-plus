@@ -82,14 +82,6 @@ static float rcCommandDivider = 500.0f;
 static float rcCommandYawDivider = 500.0f;
 
 
-typedef struct {
-    uint16_t min;
-    uint16_t max;
-    int aux;
-} followMode_t;
-
-followMode_t followMode;
-
 
 
 enum
@@ -776,30 +768,6 @@ FAST_CODE void processRcCommand(void)
 FAST_CODE_NOINLINE void updateRcCommands(void)
 {
     isRxDataNew = true;
-    //myCustomSwitchValue = rcData[AUX4];
-   //myCustomSwitchValue = autopilotConfig()->followMode[2];
-    DEBUG_SET(DEBUG_RX_TIMING, 1, rcData[AUX4]);
-    DEBUG_SET(DEBUG_RX_TIMING, 2, rcData[followMode.aux]);
-    //if (rcData[AUX4] > 1400 && rcData[AUX4] < 1700)
-    if (rcData[followMode.aux] > followMode.min && rcData[followMode.aux] < followMode.max)
-    {
-        // Если стик в диапазоне, включаем режим (если еще не включен)
-        if (!FLIGHT_MODE(FOLLOW_MODE))
-        {
-            DEBUG_SET(DEBUG_RX_TIMING, 0, 1000);
-            ENABLE_FLIGHT_MODE(FOLLOW_MODE);
-        }
-    }
-    else
-    {
-        // Если стик ВНЕ диапазона, выключаем режим (если он был включен)
-        if (FLIGHT_MODE(FOLLOW_MODE))
-        {
-            DISABLE_FLIGHT_MODE(FOLLOW_MODE);
-             DEBUG_SET(DEBUG_RX_TIMING, 0, 0);
-        }
-    }
-    // DEBUG_SET(DEBUG_RX_TIMING, 5, (myCustomSwitchValue-1000)/10);
 
     for (int axis = 0; axis < 3; axis++)
     {
@@ -814,7 +782,7 @@ FAST_CODE_NOINLINE void updateRcCommands(void)
             rcDeadband = rcControlsConfig()->yaw_deadband;
             rc *= -GET_DIRECTION(rcControlsConfig()->yaw_control_reversed);
         }
-        if (FLIGHT_MODE(FOLLOW_MODE))
+        if (FLIGHT_MODE(CRUISE_MODE))
         {
             // attitude.values.yaw
             DEBUG_SET(DEBUG_ATTITUDE, 2, lrintf(attitude.values.yaw));
@@ -961,10 +929,6 @@ void initRcProcessing(void)
 {
     rcCommandDivider = 500.0f - rcControlsConfig()->deadband;
     rcCommandYawDivider = 500.0f - rcControlsConfig()->yaw_deadband;
-  
-    followMode.min = autopilotConfig()->followMode[0];
-    followMode.max = autopilotConfig()->followMode[1];
-    followMode.aux = (int)(autopilotConfig()->followMode[2]+3);
 
     float thrMid = currentControlRateProfile->thrMid8 / 100.0f;     // normalized x coordinate for hover point
     float expo = currentControlRateProfile->thrExpo8 / 100.0f;      // normalized expo (0.0 .. 1.0)
