@@ -558,8 +558,8 @@ void tryArm(void)
     updateArmingStatus();
     // set or clear armingDisabled flags, while arming is requested, whether armed or disarmed, 
     
-    // TODO remove
-    // ENABLE_ARMING_FLAG(ARMED); 
+    // TODO my remove before flight
+    ENABLE_ARMING_FLAG(ARMED); 
 
     if (!isArmingDisabled()) {
         if (ARMING_FLAG(ARMED)) {

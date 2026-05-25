@@ -592,7 +592,7 @@ STATIC_UNIT_TESTED FAST_CODE_NOINLINE float pidLevel(int axis, const pidProfile_
     //DEBUG_SET(DEBUG_RX_TIMING, 5, (myCustomSwitchValue-1000)/10);
     //float myCustomAngleOffset = 15.0f;
     if(FLIGHT_MODE(CRUISE_MODE) && !FLIGHT_MODE(GPS_RESCUE_MODE) && !FLIGHT_MODE(FAILSAFE_MODE) && axis == FD_PITCH){
-        angleTarget = angleTarget + autopilotConfig()->cruiseAngle;
+        angleTarget += (float)autopilotConfig()->cruiseAngle;
     }
 
     angleTarget = constrainf(angleTarget, -angleLimit, angleLimit);

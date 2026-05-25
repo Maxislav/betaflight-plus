@@ -36,7 +36,6 @@
 #include "flight/position.h"
 #include "rx/rx.h"
 #include "sensors/gyro.h"
-#include "sensors/acceleration.h"
 
 #include "pg/autopilot.h"
 #include "autopilot.h"
@@ -50,28 +49,16 @@
 #define POSITION_D_SCALE  0.0015f
 #define POSITION_A_SCALE  0.0008f
 #define UPSAMPLING_CUTOFF_HZ 5.0f
-#define GRAVITY_EARTH  (9.80665f)
 
 static pidCoefficient_t altitudePidCoeffs;
 static pidCoefficient_t positionPidCoeffs;
 
 static float altitudeI = 0.0f;
 static float throttleOut = 0.0f;
-static float myAltitude = 0.0f;
-static float prevTime = 0.0f;
-static float myVerticalVelocity = 0.0f;
-static float targetDt = 1.0f;
-static uint32_t lastExecutionMicros = 0;
-static float accVertical_1G = 0.0f;
 
-static bool calibrated = false;
-static uint32_t calibrationCicles = 0;
-static float accVertical_1G_K = 0.0f;
-static float calibrationTimeSum = 0.0f;
-static float accVertical_1G_sum = 0.0f;
-
-static float filteredVertical_G = 0;
-static float alpha = 0.2f; // Коэффициент фильтрации (0.01 - 1.0)
+// TODO my
+static float capturedHoverThrottle = 0.0f;
+//
 
 typedef struct efPidAxis_s {
     bool isStopping;
@@ -99,21 +86,6 @@ typedef struct autopilotState_s {
     pt3Filter_t upsampleLpfBF[RP_AXIS_COUNT];    // upsampling filter
     efPidAxis_t efAxis[EF_AXIS_COUNT];
 } autopilotState_t;
-
-
-static inline float calculateVerticalG3t(vector3_t acc, float pitchDeg, float rollDeg){
-    const float pitchRad = RAD * pitchDeg;///degreesToRadians(pitchDeg);
-    const float rollRad = RAD * rollDeg;
-
-    const float cp = cosf(pitchRad);
-    const float sp = sinf(pitchRad);
-    const float cr = cosf(rollRad);
-    const float sr = sinf(rollRad);
-
-    // Проекция на глобальную ось Z
-    //return (acc.x * sp) - (acc.y * sr * cp) + (acc.z * cr * cp);
-    return (-acc.x * sp) + (acc.y * sr * cp) + (acc.z * cr * cp);
-}
 
 static autopilotState_t ap = {
     .sanityCheckDistance = 1000.0f,
@@ -194,122 +166,19 @@ void autopilotInit(void)
 
 void resetAltitudeControl (void) {
     altitudeI = 0.0f;
-    myAltitude = 0.0f;
-    prevTime = (float)micros()/1e6f;
-    myVerticalVelocity = 0.0f;//getAltitudeDerivative()/100.0f;
-    targetDt = 1.0f / acc.sampleRateHz;
-    lastExecutionMicros = micros();
-    
-    calibrated = false;
-    calibrationCicles = 0;
-    calibrationTimeSum = 0.0f;
-    accVertical_1G_sum = 0.0f;
-    accVertical_1G_K = 0.0f;
+        // TODO my
+    capturedHoverThrottle = constrainf(
+        rcCommand[THROTTLE],
+        autopilotConfig()->throttleMin,
+        autopilotConfig()->throttleMax
+    );
 }
-
-
 
 void altitudeControl(float targetAltitudeCm, float taskIntervalS, float targetAltitudeStep)
 {
-     // targetAltitudeCm = высота на момент включения алт холд - разница между арм и высотой на которой ключено в см
-     // taskIntervalS - в секундах - 0.01 секунда
-        //GRAVITY_EARTH
-        //  acc.accADC.z *acc.dev.acc_1G_rec; // перегрузка 1.0 * 1000;
-
-
-
-        // vector3_t accG = { 
-        //     .x = acc.accADC.x * acc.dev.acc_1G_rec, 
-        //     .y = acc.accADC.y * acc.dev.acc_1G_rec, 
-        //     .z = acc.accADC.z * acc.dev.acc_1G_rec
-        // };
-        // accVertical_1G = calculateVerticalG3t(accG,  attitude.values.pitch/10.0f,  attitude.values.roll/10.f);
-        
-        // if(calibrated){
-        //     accVertical_1G-=accVertical_1G_K;
-        // }
-        // float accZ = (accVertical_1G - 1.0f) * GRAVITY_EARTH;
-        // myVerticalVelocity += accZ * taskIntervalS;
-        // myAltitude += myVerticalVelocity * taskIntervalS;
-
-        // if(!calibrated && calibrationTimeSum<5){
-          
-        //     calibrationTimeSum+=taskIntervalS;
-        //     accVertical_1G_sum+=accVertical_1G;
-        //     calibrationCicles++;
-        // }else{
-        //     accVertical_1G_K = accVertical_1G_sum/calibrationCicles - 1.0f;
-        //     calibrated = true;
-        // }
-
-        vector3_t accG = { 
-            .x = acc.accADC.x * acc.dev.acc_1G_rec, 
-            .y = acc.accADC.y * acc.dev.acc_1G_rec, 
-            .z = acc.accADC.z * acc.dev.acc_1G_rec
-        };
-
-            float currentVertical_G = calculateVerticalG3t(accG, attitude.values.pitch/10.0f, attitude.values.roll/10.f);
-
-       // 1. Фильтруем всегда, независимо от режима
-            filteredVertical_G = (alpha * currentVertical_G) + ((1.0f - alpha) * filteredVertical_G);
-
-            if (!calibrated) {
-                // 2. Процесс калибровки
-                if (calibrationTimeSum < 5.0f) {
-                    calibrationTimeSum += taskIntervalS;
-                    // Накапливаем уже отфильтрованные данные
-                    accVertical_1G_sum += filteredVertical_G;
-                    calibrationCicles++;
-                } else {
-                    // Рассчитываем среднее — это наш "ноль" (гравитация 1G в покое)
-                    accVertical_1G_K = accVertical_1G_sum / (float)calibrationCicles;
-                    calibrated = true;
-                }
-                
-                myVerticalVelocity = 0.0f;
-                myAltitude = 0.0f;
-
-            } else {
-                // 3. Работа после калибровки
-                
-                // Вычисляем чистое ускорение в м/с2
-                float pureAcc = (filteredVertical_G - accVertical_1G_K) * GRAVITY_EARTH;
-
-                // Мертвая зона (Deadzone). Попробуйте 0.1f - 0.2f
-                if (fabsf(pureAcc) < 0.15f) {
-                    pureAcc = 0.0f;
-                }
-
-                accVertical_1G = pureAcc;
-
-                // Интегрируем скорость
-                myVerticalVelocity += accVertical_1G * taskIntervalS;
-
-                // Гаситель скорости (High Pass Filter)
-                myVerticalVelocity *= 0.98f; 
-
-                // Интегрируем высоту
-                myAltitude += myVerticalVelocity * taskIntervalS;
-                
-                // Опционально: очень медленный возврат высоты к 0, чтобы дрифт не копился вечно
-                 myAltitude *= 0.999999f; 
-            }
-        
-
-   
-
-
-    // const float dH = (acc.accADC.z *acc.dev.acc_1G_rec-1)*GRAVITY_EARTH * dTime*dTime/2;
-    // myAltitude+=dH;
-    // prevTime = (float)micros()/1e6f;
-
-    
-
-
     const float verticalVelocityCmS = getAltitudeDerivative();
     const float altitudeErrorCm = targetAltitudeCm - getAltitudeCm();
     const float altitudeP = altitudeErrorCm * altitudePidCoeffs.Kp;
-
 
     // reduce the iTerm gain for errors greater than 200cm (2m), otherwise it winds up too much
     const float itermRelax = (fabsf(altitudeErrorCm) < 200.0f) ? 1.0f : 0.1f;
@@ -333,7 +202,11 @@ void altitudeControl(float targetAltitudeCm, float taskIntervalS, float targetAl
 
     const float altitudeF = targetAltitudeStep * altitudePidCoeffs.Kf;
 
-    const float hoverOffset = autopilotConfig()->hoverThrottle - PWM_RANGE_MIN;
+    //const float hoverOffset = autopilotConfig()->hoverThrottle - PWM_RANGE_MIN;
+    //TODO my - use captured hover throttle to avoid any changes to hover throttle during flight affecting the altitude hold performance, as it is used as the trim point for the altitude PID controller
+    const float hoverOffset = capturedHoverThrottle - PWM_RANGE_MIN;
+    capturedHoverThrottle += (autopilotConfig()->hoverThrottle - capturedHoverThrottle) * 0.001f;
+
     float throttleOffset = altitudeP + altitudeI - altitudeD + altitudeF + hoverOffset;
 
     const float tiltMultiplier = 1.0f / fmaxf(getCosTiltAngle(), 0.5f);
@@ -344,27 +217,18 @@ void altitudeControl(float targetAltitudeCm, float taskIntervalS, float targetAl
 
     float newThrottle = PWM_RANGE_MIN + throttleOffset;
     newThrottle = constrainf(newThrottle, autopilotConfig()->throttleMin, autopilotConfig()->throttleMax);
-    /// новый газ
     DEBUG_SET(DEBUG_AUTOPILOT_ALTITUDE, 0, lrintf(newThrottle)); // normal range 1000-2000 but is before constraint
 
     newThrottle = scaleRangef(newThrottle, MAX(rxConfig()->mincheck, PWM_RANGE_MIN), PWM_RANGE_MAX, 0.0f, 1.0f);
 
     throttleOut = constrainf(newThrottle, 0.0f, 1.0f);
-    //attitude.values.pitch;
 
-
-    //calculateVerticalG3t()
-
-    //DEBUG_SET(DEBUG_AUTOPILOT_ALTITUDE, 1, lrintf(tiltMultiplier * 100));
-    DEBUG_SET(DEBUG_AUTOPILOT_ALTITUDE, 1, lrintf(accVertical_1G*100));
-    DEBUG_SET(DEBUG_AUTOPILOT_ALTITUDE, 2, lrintf(myAltitude*100));
-    DEBUG_SET(DEBUG_AUTOPILOT_ALTITUDE, 3, lrintf(calibrated ? 1000 : 0));
-    DEBUG_SET(DEBUG_AUTOPILOT_ALTITUDE, 4, lrintf(acc.sampleRateHz));
-   // DEBUG_SET(DEBUG_AUTOPILOT_ALTITUDE, 3, lrintf(accG.x*10));
-   // DEBUG_SET(DEBUG_AUTOPILOT_ALTITUDE, 4, lrintf(accG.y*10));
-   // DEBUG_SET(DEBUG_AUTOPILOT_ALTITUDE, 5, lrintf(accG.z*10));
-   // DEBUG_SET(DEBUG_AUTOPILOT_ALTITUDE, 6, lrintf(-altitudeD));
-    //DEBUG_SET(DEBUG_AUTOPILOT_ALTITUDE, 7, lrintf(altitudeF));
+    DEBUG_SET(DEBUG_AUTOPILOT_ALTITUDE, 1, lrintf(tiltMultiplier * 100));
+    DEBUG_SET(DEBUG_AUTOPILOT_ALTITUDE, 3, lrintf(targetAltitudeCm));
+    DEBUG_SET(DEBUG_AUTOPILOT_ALTITUDE, 4, lrintf(altitudeP));
+    DEBUG_SET(DEBUG_AUTOPILOT_ALTITUDE, 5, lrintf(altitudeI));
+    DEBUG_SET(DEBUG_AUTOPILOT_ALTITUDE, 6, lrintf(-altitudeD));
+    DEBUG_SET(DEBUG_AUTOPILOT_ALTITUDE, 7, lrintf(altitudeF));
 }
 
 void setSticksActiveStatus(bool areSticksActive)
