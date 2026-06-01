@@ -169,8 +169,8 @@ void resetAltitudeControl (void) {
         // TODO my
     capturedHoverThrottle = constrainf(
         rcCommand[THROTTLE],
-        autopilotConfig()->throttleMin,
-        autopilotConfig()->throttleMax
+        autopilotConfig()->hoverThrottle - 80, // allow some room for descent without the throttle correction pushing it up
+        autopilotConfig()->hoverThrottle + 80  // allow some room for climb without the throttle correction pushing it down
     );
 }
 
@@ -205,7 +205,7 @@ void altitudeControl(float targetAltitudeCm, float taskIntervalS, float targetAl
     //const float hoverOffset = autopilotConfig()->hoverThrottle - PWM_RANGE_MIN;
     //TODO my - use captured hover throttle to avoid any changes to hover throttle during flight affecting the altitude hold performance, as it is used as the trim point for the altitude PID controller
     const float hoverOffset = capturedHoverThrottle - PWM_RANGE_MIN;
-    capturedHoverThrottle += (autopilotConfig()->hoverThrottle - capturedHoverThrottle) * 0.001f;
+    //capturedHoverThrottle += (autopilotConfig()->hoverThrottle - capturedHoverThrottle) * 0.001f;
 
     float throttleOffset = altitudeP + altitudeI - altitudeD + altitudeF + hoverOffset;
 
