@@ -47,6 +47,7 @@ PG_RESET_TEMPLATE(autopilotConfig_t, autopilotConfig,
     .positionA = 30,
     .positionCutoff = 80,
     .maxAngle = 50,
+    .cruiseAngle = 10
 );
 
 #endif // !USE_WING

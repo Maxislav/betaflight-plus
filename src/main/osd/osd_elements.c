@@ -750,7 +750,6 @@ static void osdElementAntiGravity(osdElementParms_t *element)
 }
 
 #ifdef USE_ACC
-
 static void osdElementArtificialHorizon(osdElementParms_t *element)
 {
     static int x = -4;
@@ -760,6 +759,7 @@ static void osdElementArtificialHorizon(osdElementParms_t *element)
     const int ahSign = osdConfig()->ahInvert ? -1 : 1;
     const int rollAngle = constrain(attitude.values.roll * ahSign, -maxRoll, maxRoll);
     int pitchAngle = constrain(attitude.values.pitch * ahSign, -maxPitch, maxPitch);
+    pitchAngle = pitchAngle * 1.2;
     // Convert pitchAngle to y compensation value
     // (maxPitch / 25) divisor matches previous settings of fixed divisor of 8 and fixed max AHI pitch angle of 20.0 degrees
     if (maxPitch > 0) {
@@ -772,10 +772,11 @@ static void osdElementArtificialHorizon(osdElementParms_t *element)
         element->elemOffsetX = x;
         element->elemOffsetY = y / AH_SYMBOL_COUNT;
 
-        tfp_sprintf(element->buff, "%c", (SYM_AH_BAR9_0 + (y % AH_SYMBOL_COUNT)));
+        tfp_sprintf(element->buff, "%c", (x<-1 || x>1) ? (SYM_AH_BAR9_0 + (y % AH_SYMBOL_COUNT)): SYM_BLANK);
     } else {
         element->drawElement = false;  // element does not need to be rendered
     }
+    
 
     if (x == 4) {
         // Rendering is complete, so prepare to start again
@@ -964,12 +965,84 @@ static void osdElementCrashFlipArrow(osdElementParms_t *element)
 }
 #endif // USE_ACC
 
+static float getAverage(float *arr){
+    float sum = 0;
+    for(int i = 0; i< 9; i++ ){
+            sum+=arr[i];
+    }
+    return sum/10.0f;
+
+}
+
 static void osdElementCrosshairs(osdElementParms_t *element)
 {
-    element->buff[0] = SYM_AH_CENTER_LINE;
-    element->buff[1] = SYM_AH_CENTER;
-    element->buff[2] = SYM_AH_CENTER_LINE_RIGHT;
+    bool haveGps = false;
+    // element->buff[0] = SYM_AH_CENTER_LINE;
+    // element->buff[1] = SYM_AH_CENTER;
+    // element->buff[2] = SYM_AH_CENTER_LINE_RIGHT;
+    // element->buff[3] = 0;
+
+    //element->buff[0] = SYM_AH_CENTER_LINE;
+    //element->buff[1] = SYM_AH_CENTER;
+    ///element->buff[2] = SYM_AH_CENTER_LINE_RIGHT;
+    static float verticalAngleList[10] = {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f};
+    static timeUs_t prevTime = 0;
+
+#ifdef USE_GPS
+    haveGps = sensors(SENSOR_GPS) && STATE(GPS_FIX);
+#endif 
+
     element->buff[3] = 0;
+    const int maxPitch = osdConfig()->ahMaxPitch * 10;
+    float groundSpeed  = haveGps ? (float)gpsSol.groundSpeed : 1400.0f;
+    groundSpeed = constrainf(groundSpeed, 150.0f, 3000.0f );
+    const float verticalSpeed = osdGetMetersToSelectedUnit(getEstimatedVario());
+    float verticalAngle = RADIANS_TO_DEGREES(atanf( verticalSpeed/groundSpeed ));
+    if(micros() > prevTime + 100000/2){
+        prevTime = micros();
+        for(int i = 0; i< 9; i++ ){
+            verticalAngleList[i] = verticalAngleList[i+1];
+        }
+        verticalAngleList[9] = verticalAngle;
+        verticalAngle = getAverage(verticalAngleList);
+    }
+
+    float pitchAngle = constrainf(attitude.values.pitch, -maxPitch, maxPitch) * 1.2f;
+    float offsetY = -pitchAngle/80 - verticalAngle/6 + 0.5f; // constrain(-pitchAngle/100, -7, 7)
+    const float directionYaw = DECIDEGREES_TO_DEGREES(attitude.values.yaw);
+    const float directionCourse = DECIDEGREES_TO_DEGREES(gpsSol.groundCourse);
+    float dif = directionCourse - directionYaw;
+    if(dif < -180){
+        dif += 360;
+    }
+    if(dif > 180){
+        dif -= 360;
+    }
+    int dd = abs((int)(9.0f*offsetY)%9);
+    if(offsetY > 0.0f){
+        
+        element->buff[0] = SYM_AH_BAR9_0 + dd;
+        element->buff[1] = SYM_AH_BAR9_0 + dd;
+        element->buff[2] = SYM_AH_BAR9_0 + dd;
+    }else{
+        offsetY = offsetY-1.0f;
+        element->buff[0] = SYM_AH_BAR9_0 + (8-dd);
+        element->buff[1] = SYM_AH_BAR9_0 + (8-dd);
+        element->buff[2] = SYM_AH_BAR9_0 + (8-dd);
+    }
+    
+    
+   
+    // tfp_sprintf(element->buff, "%c", (SYM_AH_BAR9_0 + (y % AH_SYMBOL_COUNT)));
+    //const int offsetX = STATE(GPS_FIX) ? dif/6 : 0;
+    //element->elemOffsetX = constrain(offsetX, -5, 5);
+    element->elemOffsetX = 0;
+    element->elemOffsetY = constrain(offsetY, -7, 7);
+    if(offsetY < -7 || offsetY > 7 ){
+        SET_BLINK(element->item);
+    }else{
+        CLR_BLINK(element->item);
+    }
 }
 
 static void osdElementCurrentDraw(osdElementParms_t *element)
@@ -1105,7 +1178,9 @@ static void osdElementFlymode(osdElementParms_t *element)
         strcpy(element->buff, "PASS");
     } else if (FLIGHT_MODE(POS_HOLD_MODE)) {
         strcpy(element->buff, "POSH");
-    } else if (FLIGHT_MODE(ALT_HOLD_MODE)) {
+    }else if (FLIGHT_MODE(CRUISE_MODE)) {
+        strcpy(element->buff, "CRUISE");
+    }else if (FLIGHT_MODE(ALT_HOLD_MODE)) {
         strcpy(element->buff, "ALTH");
     } else if (FLIGHT_MODE(ANGLE_MODE)) {
         strcpy(element->buff, "ANGL");

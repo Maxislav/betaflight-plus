@@ -987,7 +987,7 @@ void initPhase3(void)
 
 // autopilot must be initialised before modes that require the autopilot pids
 #ifdef USE_ALTITUDE_HOLD
-    altHoldInit();
+    altHoldInit(); //init alt hold
 #endif
 
 #ifdef USE_POSITION_HOLD

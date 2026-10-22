@@ -56,6 +56,10 @@ static pidCoefficient_t positionPidCoeffs;
 static float altitudeI = 0.0f;
 static float throttleOut = 0.0f;
 
+// TODO my
+static float capturedHoverThrottle = 0.0f;
+//
+
 typedef struct efPidAxis_s {
     bool isStopping;
     float previousDistance;
@@ -162,6 +166,12 @@ void autopilotInit(void)
 
 void resetAltitudeControl (void) {
     altitudeI = 0.0f;
+        // TODO my
+    capturedHoverThrottle = constrainf(
+        rcCommand[THROTTLE],
+        autopilotConfig()->hoverThrottle - 80, // allow some room for descent without the throttle correction pushing it up
+        autopilotConfig()->hoverThrottle + 80  // allow some room for climb without the throttle correction pushing it down
+    );
 }
 
 void altitudeControl(float targetAltitudeCm, float taskIntervalS, float targetAltitudeStep)
@@ -192,7 +202,11 @@ void altitudeControl(float targetAltitudeCm, float taskIntervalS, float targetAl
 
     const float altitudeF = targetAltitudeStep * altitudePidCoeffs.Kf;
 
-    const float hoverOffset = autopilotConfig()->hoverThrottle - PWM_RANGE_MIN;
+    //const float hoverOffset = autopilotConfig()->hoverThrottle - PWM_RANGE_MIN;
+    //TODO my - use captured hover throttle to avoid any changes to hover throttle during flight affecting the altitude hold performance, as it is used as the trim point for the altitude PID controller
+    const float hoverOffset = capturedHoverThrottle - PWM_RANGE_MIN;
+    //capturedHoverThrottle += (autopilotConfig()->hoverThrottle - capturedHoverThrottle) * 0.001f;
+
     float throttleOffset = altitudeP + altitudeI - altitudeD + altitudeF + hoverOffset;
 
     const float tiltMultiplier = 1.0f / fmaxf(getCosTiltAngle(), 0.5f);

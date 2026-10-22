@@ -63,6 +63,7 @@
 #include "flight/gps_rescue.h"
 #include "flight/alt_hold.h"
 #include "flight/pos_hold.h"
+#include "pg/autopilot.h"
 
 #if defined(USE_DYN_NOTCH_FILTER)
 #include "flight/dyn_notch_filter.h"
@@ -171,6 +172,8 @@ const char * const osdLaunchControlModeNames[] = {
     "FULL"
 };
 #endif
+
+///uint16_t aux = autopilotConfig()->followMode[2];
 
 PG_REGISTER_WITH_RESET_TEMPLATE(throttleCorrectionConfig_t, throttleCorrectionConfig, PG_THROTTLE_CORRECTION_CONFIG, 0);
 
@@ -543,7 +546,10 @@ void disarm(flightLogDisarmReason_e reason)
 }
 
 void tryArm(void)
+    
 {
+
+
     if (armingConfig()->gyro_cal_on_first_arm) {
         gyroStartCalibration(true);
     }
@@ -551,7 +557,9 @@ void tryArm(void)
 
     updateArmingStatus();
     // set or clear armingDisabled flags, while arming is requested, whether armed or disarmed, 
-
+    
+    // TODO my remove before flight
+    //ENABLE_ARMING_FLAG(ARMED); 
 
     if (!isArmingDisabled()) {
         if (ARMING_FLAG(ARMED)) {
@@ -670,6 +678,9 @@ if (isMotorProtocolDshot()) {
         }
     }
 }
+
+
+
 
 // Automatic ACC Offset Calibration
 bool AccInflightCalibrationArmed = false;
@@ -1021,10 +1032,11 @@ void processRxModes(timeUs_t currentTimeUs)
     }
 
     bool canUseHorizonMode = true;
-    if ((IS_RC_MODE_ACTIVE(BOXANGLE)
+    if ((IS_RC_MODE_ACTIVE(BOXANGLE) //
         || failsafeIsActive()
 #ifdef USE_ALTITUDE_HOLD
         || FLIGHT_MODE(ALT_HOLD_MODE)
+        || FLIGHT_MODE(CRUISE_MODE) //TODO my not nessusary
 #endif
 #ifdef USE_POSITION_HOLD
         || FLIGHT_MODE(POS_HOLD_MODE)
@@ -1040,13 +1052,18 @@ void processRxModes(timeUs_t currentTimeUs)
         DISABLE_FLIGHT_MODE(ANGLE_MODE); // failsafe support
     }
 
+    // u 
+    ///uint16_t aux = autopilotConfig()->followMode[2];
+    //autoPipilotConfig()->followMode[2]
+
+
 #ifdef USE_ALTITUDE_HOLD
     // only if armed; can coexist with position hold
     if (ARMING_FLAG(ARMED)
         // and not in GPS_RESCUE_MODE, to give it priority over Altitude Hold
         && !FLIGHT_MODE(GPS_RESCUE_MODE)
         // and either the alt_hold switch is activated, or are in failsafe landing mode
-        && (IS_RC_MODE_ACTIVE(BOXALTHOLD) || failsafeIsActive())
+        && (IS_RC_MODE_ACTIVE(BOXALTHOLD) || IS_RC_MODE_ACTIVE(BOXCRUISE) || failsafeIsActive() )
         // and we have Acc for self-levelling
         && sensors(SENSOR_ACC)
         // and we have altitude data
@@ -1059,6 +1076,22 @@ void processRxModes(timeUs_t currentTimeUs)
     } else {
         DISABLE_FLIGHT_MODE(ALT_HOLD_MODE);
     }
+
+    if (ARMING_FLAG(ARMED)
+        && !FLIGHT_MODE(GPS_RESCUE_MODE)
+        && (IS_RC_MODE_ACTIVE(BOXCRUISE))
+        && sensors(SENSOR_ACC)
+        && isAltitudeAvailable()
+        && wasThrottleRaised()) {
+        if (!FLIGHT_MODE(CRUISE_MODE)) {
+            ENABLE_FLIGHT_MODE(CRUISE_MODE);
+        }
+    } else {
+        DISABLE_FLIGHT_MODE(CRUISE_MODE);
+    }
+
+
+
 #endif
 
 #ifdef USE_POSITION_HOLD

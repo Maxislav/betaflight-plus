@@ -688,7 +688,7 @@ static void imuCalculateEstimatedAttitude(timeUs_t currentTimeUs)
                 groundspeedGain = imuCalcGroundspeedGain(dt);
             }
 
-            DEBUG_SET(DEBUG_ATTITUDE, 2, lrintf(groundspeedGain * 100.0f));
+            //DEBUG_SET(DEBUG_ATTITUDE, 2, lrintf(groundspeedGain * 100.0f));
 
             const float courseOverGround = DECIDEGREES_TO_RADIANS(gpsSol.groundCourse);
             const float imuCourseError = imuCalcCourseErr(courseOverGround);
