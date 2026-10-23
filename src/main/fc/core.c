@@ -63,7 +63,7 @@
 #include "flight/gps_rescue.h"
 #include "flight/alt_hold.h"
 #include "flight/pos_hold.h"
-
+#include "pg/autopilot.h"
 #if ENABLE_FLIGHT_PLAN && !defined(USE_WING)
 #include "flight/flight_plan_capture.h"
 #endif

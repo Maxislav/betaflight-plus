@@ -174,6 +174,12 @@ static float apNavHeadingOverrideDeg = 0.0f;
 
 static void disableYawControl(void);
 
+
+// TODO my
+static float capturedHoverThrottle = 0.0f;
+//
+
+
 typedef enum {
     ANCHOR_OFF = 0,   // virtual distance error, integrated from the velocity error
     ANCHOR_HOLD,      // real distance error: targetPosition - currentPosition
@@ -263,6 +269,12 @@ void resetAltitudeControl(void)
 {
     altitudeI = 0.0f;
     throttleOut = 0.0f;
+        // TODO my
+    capturedHoverThrottle = constrainf(
+        rcCommand[THROTTLE],
+        autopilotConfig()->hoverThrottle - 80, // allow some room for descent without the throttle correction pushing it up
+        autopilotConfig()->hoverThrottle + 80  // allow some room for climb without the throttle correction pushing it down
+    );
 }
 
 uint16_t autopilotGetEffectiveHoverThrottlePwm(void)
@@ -316,7 +328,10 @@ void altitudeControl(float targetAltitudeCm, float taskIntervalS, float targetAl
     const float altitudeD = velocityError * altitudeKd * dBoost;
     const float altitudeF = targetVerticalVelocity * altitudeKf;
 
-    const float hoverOffset = (float)autopilotGetEffectiveHoverThrottlePwm() - PWM_RANGE_MIN;
+    // TODO my
+    //const float hoverOffset = (float)autopilotGetEffectiveHoverThrottlePwm() - PWM_RANGE_MIN;
+
+    const float hoverOffset = capturedHoverThrottle - PWM_RANGE_MIN;
 
 
     float throttleOffset = altitudeP

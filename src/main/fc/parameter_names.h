@@ -176,6 +176,7 @@
 #define PARAM_NAME_AP_POSITION_CUTOFF "ap_position_cutoff"
 #define PARAM_NAME_AP_STOP_THRESHOLD "ap_stop_threshold"
 #define PARAM_NAME_AP_MAX_ANGLE "ap_max_angle"
+#define PARAM_NAME_AP_CRUISE_ANGLE "ap_cruise_angle"
 
 // Velocity-based position control with drag compensation
 #define PARAM_NAME_AP_VELOCITY_DRAG_COEFF "ap_velocity_drag_coeff"
