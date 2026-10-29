@@ -128,6 +128,8 @@ typedef struct autopilotConfig_s {
     // Safety: Geofence (max distance from home)
     uint16_t maxDistanceFromHomeM;    // meters, 0 = disabled (default 0)
     uint8_t geofenceAction;           // autopilotGeofenceAction_e (default AP_GEOFENCE_LAND)
+    uint8_t manualMotorLimit;         // percent of motor range above idle available in MANUAL mode (default 20)
+    uint8_t manualAuthority;          // percent of full mixer authority applied at full stick in MANUAL mode (default 50)
     uint8_t cruiseAngle;              // degrees, cruise angle for waypoint navigation (default 10)
 } autopilotConfig_t;
 

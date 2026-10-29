@@ -177,6 +177,8 @@
 #define PARAM_NAME_AP_STOP_THRESHOLD "ap_stop_threshold"
 #define PARAM_NAME_AP_MAX_ANGLE "ap_max_angle"
 #define PARAM_NAME_AP_CRUISE_ANGLE "ap_cruise_angle"
+#define PARAM_NAME_MANUAL_AUTHORITY "manual_authority"
+#define PARAM_NAME_MANUAL_MOTOR_LIMIT "manual_motor_limit"
 
 // Velocity-based position control with drag compensation
 #define PARAM_NAME_AP_VELOCITY_DRAG_COEFF "ap_velocity_drag_coeff"

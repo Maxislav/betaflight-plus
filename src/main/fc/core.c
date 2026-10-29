@@ -1269,6 +1269,12 @@ void processRxModes(timeUs_t currentTimeUs)
         DISABLE_FLIGHT_MODE(PASSTHRU_MODE);
     }
 
+    if (IS_RC_MODE_ACTIVE(BOXMANUAL)) {
+        ENABLE_FLIGHT_MODE(MANUAL_MODE);
+    } else {
+        DISABLE_FLIGHT_MODE(MANUAL_MODE);
+    }
+
     if (mixerConfig()->mixerMode == MIXER_FLYING_WING || mixerConfig()->mixerMode == MIXER_AIRPLANE) {
         DISABLE_FLIGHT_MODE(HEADFREE_MODE);
     }
@@ -1325,6 +1331,7 @@ static FAST_CODE_NOINLINE void subTaskPidController(timeUs_t currentTimeUs)
         && !crashFlipModeActive
         && !runawayTakeoffTemporarilyDisabled
         && !FLIGHT_MODE(GPS_RESCUE_MODE)   // disable Runaway Takeoff triggering if GPS Rescue is active
+        && !pidManualModeActive()          // MANUAL drives the mixer straight from the sticks
         // check that motors are running
         && (!featureIsEnabled(FEATURE_MOTOR_STOP) || isAirmodeEnabled() || (calculateThrottleStatus() != THROTTLE_LOW))) {
 

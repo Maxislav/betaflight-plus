@@ -2027,6 +2027,8 @@ const clivalue_t valueTable[] = {
     // Drag feedforward and velocity setpoint cap
     { PARAM_NAME_AP_VELOCITY_DRAG_COEFF, VAR_UINT8  | MASTER_VALUE, .config.minmaxUnsigned = { 0, 100 },     PG_AUTOPILOT, offsetof(autopilotConfig_t, velocityDragCoeff) },
     { PARAM_NAME_AP_MAX_VELOCITY,        VAR_UINT16 | MASTER_VALUE, .config.minmaxUnsigned = { 100, 5000 },  PG_AUTOPILOT, offsetof(autopilotConfig_t, maxVelocity) },
+    { PARAM_NAME_MANUAL_MOTOR_LIMIT,     VAR_UINT8  | MASTER_VALUE, .config.minmaxUnsigned = { 1, 100 },     PG_AUTOPILOT, offsetof(autopilotConfig_t, manualMotorLimit) },
+    { PARAM_NAME_MANUAL_AUTHORITY,       VAR_UINT8  | MASTER_VALUE, .config.minmaxUnsigned = { 0, 100 },     PG_AUTOPILOT, offsetof(autopilotConfig_t, manualAuthority) },
     { PARAM_NAME_AP_CRUISE_ANGLE,        VAR_UINT8  | MASTER_VALUE, .config.minmaxUnsigned = { 0, 45 },      PG_AUTOPILOT, offsetof(autopilotConfig_t, cruiseAngle) },
 
 // Phase 3: Waypoint navigation & yaw control

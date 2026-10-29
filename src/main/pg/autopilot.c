@@ -47,6 +47,8 @@ PG_RESET_TEMPLATE(autopilotConfig_t, autopilotConfig,
     .positionCutoff = 30,
     .stopThreshold = 10,
     .maxAngle = 50,
+    .manualMotorLimit = 20,
+    .manualAuthority = 50,
     .cruiseAngle = 10,
 
     // Velocity-based position control with drag compensation

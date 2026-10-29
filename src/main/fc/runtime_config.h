@@ -94,7 +94,8 @@ typedef enum {
     FAILSAFE_MODE   = (1 << 10),
     GPS_RESCUE_MODE = (1 << 11),
     AUTOPILOT_MODE  = (1 << 12),  // GPS waypoint tracking
-    CRUISE_MODE = (1<<13)
+    CRUISE_MODE = (1<<13),
+    MANUAL_MODE     = (1 << 14)  // PID bypass
 } flightModeFlags_e;
 
 extern uint16_t flightModeFlags;
@@ -118,6 +119,7 @@ extern uint16_t flightModeFlags;
    [BOXGPSRESCUE]   = LOG2(GPS_RESCUE_MODE),             \
    [BOXAUTOPILOT]   = LOG2(AUTOPILOT_MODE),              \
    [BOXCRUISE]      = LOG2(CRUISE_MODE),                 \
+   [BOXMANUAL]      = LOG2(MANUAL_MODE),                 \
 }                                                        \
 /**/
 

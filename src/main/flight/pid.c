@@ -1049,12 +1049,29 @@ NOINLINE static void applySpa(int axis, const pidProfile_t *pidProfile)
 
 // Betaflight pid controller, which will be maintained in the future with additional features specialised for current (mini) multirotor usage.
 // Based on 2DOF reference design (matlab)
+// MANUAL bypasses PID entirely; never allow it while the FC itself is flying the craft
+bool pidManualModeActive(void)
+{
+    return FLIGHT_MODE(MANUAL_MODE) && !FLIGHT_MODE(FAILSAFE_MODE | GPS_RESCUE_MODE | AUTOPILOT_MODE);
+}
+
 void FAST_CODE pidController(const pidProfile_t *pidProfile, timeUs_t currentTimeUs)
 {
     static float previousGyroRateDterm[XYZ_AXIS_COUNT];
     static float previousRawGyroRateDterm[XYZ_AXIS_COUNT];
 
     calculateSpaValues(pidProfile);
+
+    static bool wasManualActive;
+    const bool manualActive = pidManualModeActive();
+    if (wasManualActive && !manualActive) {
+        // drop the stick-driven sums so they don't leak into integrated yaw / I-term on exit
+        for (int axis = FD_ROLL; axis <= FD_YAW; ++axis) {
+            pidData[axis].Sum = 0;
+        }
+        pidResetIterm();
+    }
+    wasManualActive = manualActive;
 
 #ifdef USE_YAW_SPIN_RECOVERY
     const bool yawSpinActive = gyroYawSpinDetected();
@@ -1473,6 +1490,17 @@ void FAST_CODE pidController(const pidProfile_t *pidProfile, timeUs_t currentTim
             pidData[axis].S = 0;
 
             pidData[axis].Sum = 0;
+        }
+    } else if (manualActive) {
+        const float authority = 0.01f * autopilotConfig()->manualAuthority;
+        for (int axis = FD_ROLL; axis <= FD_YAW; ++axis) {
+            pidData[axis].P = 0;
+            pidData[axis].I = 0;
+            pidData[axis].D = 0;
+            pidData[axis].F = 0;
+            pidData[axis].S = 0;
+
+            pidData[axis].Sum = getRcDeflection(axis) * PIDSUM_LIMIT_MAX * authority;
         }
     } else if (pidRuntime.zeroThrottleItermReset) {
         pidResetIterm();

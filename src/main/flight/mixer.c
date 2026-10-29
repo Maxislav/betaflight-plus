@@ -57,6 +57,7 @@
 
 #include "io/gps.h"
 
+#include "pg/autopilot.h"
 #include "pg/rx.h"
 
 #include "rx/rx.h"
@@ -266,6 +267,9 @@ static void calculateThrottleAndCurrentMotorEndpoints(timeUs_t currentTimeUs)
         motorRangeMax = mixerRuntime.motorOutputHigh;
 #endif
         motorRangeMin = mixerRuntime.motorOutputLow + motorRangeMinIncrease * (mixerRuntime.motorOutputHigh - mixerRuntime.motorOutputLow);
+        if (pidManualModeActive()) {
+            motorRangeMax = motorRangeMin + (motorRangeMax - motorRangeMin) * 0.01f * autopilotConfig()->manualMotorLimit;
+        }
         motorOutputMin = motorRangeMin;
         motorOutputRange = motorRangeMax - motorRangeMin;
         motorOutputMixSign = 1;
@@ -696,12 +700,15 @@ FAST_CODE_NOINLINE void mixTable(timeUs_t currentTimeUs)
 #endif
 
     // Calculate and Limit the PID sum
+    // MANUAL mode is limited by manual_authority and manual_motor_limit instead of the profile pidsum limits
+    const bool manualMode = pidManualModeActive();
+    const uint16_t pidSumLimit = manualMode ? PIDSUM_LIMIT_MAX : currentPidProfile->pidSumLimit;
     const float scaledAxisPidRoll =
-        constrainf(pidData[FD_ROLL].Sum, -currentPidProfile->pidSumLimit, currentPidProfile->pidSumLimit) / PID_MIXER_SCALING;
+        constrainf(pidData[FD_ROLL].Sum, -pidSumLimit, pidSumLimit) / PID_MIXER_SCALING;
     const float scaledAxisPidPitch =
-        constrainf(pidData[FD_PITCH].Sum, -currentPidProfile->pidSumLimit, currentPidProfile->pidSumLimit) / PID_MIXER_SCALING;
+        constrainf(pidData[FD_PITCH].Sum, -pidSumLimit, pidSumLimit) / PID_MIXER_SCALING;
 
-    uint16_t yawPidSumLimit = currentPidProfile->pidSumLimitYaw;
+    uint16_t yawPidSumLimit = manualMode ? PIDSUM_LIMIT_MAX : currentPidProfile->pidSumLimitYaw;
 
 #ifdef USE_YAW_SPIN_RECOVERY
     const bool yawSpinDetected = gyroYawSpinDetected();

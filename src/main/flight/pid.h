@@ -543,6 +543,7 @@ extern pt1Filter_t throttleLpf;
 void resetPidProfile(pidProfile_t *profile);
 
 void pidResetIterm(void);
+bool pidManualModeActive(void);
 void pidStabilisationState(pidStabilisationState_e pidControllerState);
 void pidSetItermAccelerator(float newItermAccelerator);
 bool crashRecoveryModeActive(void);
